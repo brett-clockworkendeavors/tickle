@@ -1,20 +1,83 @@
 #!/usr/bin/php
 <?php
+//remove the program name from argv
+array_shift($argv);
+$argc--;
 
+$options = getopt("hv");
+foreach(array_keys($options) as $option)
+{
+	//remove options from argv
+	array_shift($argv);
+	$argc--;
+	if($options[$option])
+		array_shift($argv);
+		
+	switch($option)
+	{
+	case 'h':
+		usage();
+		break;
+	case 'v':
+		echo "Redcopy Version 0.1\n";
+		break;
+	default:
+		usage();
+		break;
+	}
+}
+
+if($argc)
+	$issuenumber = array_shift($argv);
+else
+	usage();
+	
 $copyFrom = getConfig("config/copyFromConfig.csv");
 $copyTo = getConfig("config/copyToConfig.csv");
-var_dump($copyFrom);
-var_dump($copyTo);
+
+$issueFrom = getIssueFromAsArray($copyFrom, $issuenumber);
+var_dump($issueFrom);
+function usage()
+{
+	echo "Usage: redcopy [options...] issuenumber\n";
+	echo "Options\n";
+	echo "-h  Display usage\n"; 
+	echo "-v  display the current version number\n";
+	exit();
+}
+
 function getConfig($fileName)
 {
-	$copyFrom = array();
+	$config = array();
 	$file = fopen($fileName, "r") or exit("Unable to open file.");
 	while(!feof($file))
 	{
-		$copyFromCsvLine = fgetcsv($file);
-		$copyFrom[$copyFromCsvLine[0]] = $copyFromCsvLine[1];
+		$configCsvLine = fgetcsv($file);
+		$configParamaters["url"] = $configCsvLine[0];
+		$configParamaters["apiKey"] = $configCsvLine[1];
+		$config[]=$configParamaters;
 	}
 	
-	return $copyFrom;
+	return $config;
+}
+
+function getIssueFromAsArray ($copyFrom, $issuenumber)
+{
+	$curlHandle = curl_init();
+	curl_setopt($curlHandle, CURLOPT_URL, $copyFrom[0]["url"]."/issues/".$issuenumber.".json");
+	curl_setopt($curlHandle, CURLOPT_HTTPHEADER, getApiKeyHeader($copyFrom[0]["apiKey"]));
+	curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($curlHandle, CURLOPT_HEADER, false);
+	
+	$transferReturned = curl_exec($curlHandle);
+	curl_close($curlHandle);
+
+	return json_decode($transferReturned, true);
+}
+
+function getApiKeyHeader ($apiKey)
+{
+	$headers[] = 'X-Redmine-API-Key: '. $apiKey;	
+	return $headers;
 }
 ?>
