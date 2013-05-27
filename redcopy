@@ -36,7 +36,11 @@ $copyFrom = getConfig("config/copyFromConfig.csv");
 $copyTo = getConfig("config/copyToConfig.csv");
 
 $issueFrom = getIssueFromAsArray($copyFrom, $issuenumber);
-var_dump($issueFrom);
+$issueTo = $issueFrom;
+
+sendIssueToRedmine($issueTo, $copyTo);
+
+var_dump($issueTo);
 function usage()
 {
 	echo "Usage: redcopy [options...] issuenumber\n";
@@ -75,9 +79,48 @@ function getIssueFromAsArray ($copyFrom, $issuenumber)
 	return json_decode($transferReturned, true);
 }
 
+function sendIssueToRedmine ($issueTo, $copyTo)
+{
+	$issue = createNewIssue($issueTo);
+	$curlHandle = curl_init($copyTo[0]["url"]."/issues.json");
+	curl_setopt($curlHandle, CURLOPT_POST, true);
+	curl_setopt($curlHandle, CURLOPT_POSTFIELDS, $issue);
+	curl_setopt($curlHandle, CURLOPT_POST, true);
+	curl_setopt($curlHandle, CURLOPT_HTTPHEADER, getRedmineJsonPostHeaders($issue, $copyTo[0]["apiKey"]));
+	curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($curlHandle, CURLOPT_HEADER, true);
+	curl_setopt($curlHandle, CURLOPT_FRESH_CONNECT, true);
+	
+	$transferReturned = curl_exec($curlHandle);
+	
+	curl_close($curlHandle);
+}
+
+function createNewIssue($issueTo)
+{
+	$newIssue = array();
+	$newIssue['project_id'] = $issueTo['issue']['project']['id'];
+	$newIssue['tracker_id'] = $issueTo['issue']['tracker']['id'];
+	$newIssue['priority_id'] = $issueTo['issue']['priority']['id'];
+	$newIssue['subject'] = $issueTo['issue']['subject'];
+	$newIssue['description'] = $issueTo['issue']['description'];
+	$newIssue['fixed_version'] = $issueTo['issue']['fixed_version']['id'];
+	
+	return json_encode(array("issue" => $newIssue));
+}
+
 function getApiKeyHeader ($apiKey)
 {
 	$headers[] = 'X-Redmine-API-Key: '. $apiKey;	
+	return $headers;
+}
+
+function getRedmineJsonPostHeaders ($jsonData, $apiKey)
+{
+	$headers[] = 'Content-Type: application/json';
+	$headers[] = 'Content-Length: '. strlen($jsonData);
+	$headers[] = 'X-Redmine-API-Key: '. $apiKey;
+	
 	return $headers;
 }
 ?>
