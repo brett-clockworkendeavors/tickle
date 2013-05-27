@@ -1,3 +1,20 @@
 #!/usr/bin/php
 <?php
+
+$copyFrom = getConfig("config/copyFromConfig.csv");
+$copyTo = getConfig("config/copyToConfig.csv");
+var_dump($copyFrom);
+var_dump($copyTo);
+function getConfig($fileName)
+{
+	$copyFrom = array();
+	$file = fopen($fileName, "r") or exit("Unable to open file.");
+	while(!feof($file))
+	{
+		$copyFromCsvLine = fgetcsv($file);
+		$copyFrom[$copyFromCsvLine[0]] = $copyFromCsvLine[1];
+	}
+	
+	return $copyFrom;
+}
 ?>
