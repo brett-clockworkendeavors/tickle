@@ -34,13 +34,14 @@ else
 	
 $copyFrom = getConfig("config/copyFromConfig.csv");
 $copyTo = getConfig("config/copyToConfig.csv");
-
+$fromTo = getFromTo("config/configFromTo.csv",$copyFrom, $copyTo);
 $issueFrom = getIssueFromAsArray($copyFrom, $issuenumber);
-$issueTo = $issueFrom;
+$issueTo = changeIssueForSending($issueFrom, $fromTo);
+$header = sendIssueToRedmine($issueTo, $copyTo);
+$copyStatus = findStatusFromHeader($header);
+$copyStatus = trim($copyStatus);
+echo $copyStatus."\n";
 
-sendIssueToRedmine($issueTo, $copyTo);
-
-var_dump($issueTo);
 function usage()
 {
 	echo "Usage: redcopy [options...] issuenumber\n";
@@ -65,6 +66,36 @@ function getConfig($fileName)
 	return $config;
 }
 
+function getFromTo($fileName,$copyFrom, $copyTo)
+{
+	$projects = getProjectsAsArray($copyTo);
+	$file = fopen($fileName, "r") or exit("Unable to open file.");
+	$urlCsvLine = fgetcsv($file);
+	if(!areUrlsRight($urlCsvLine[0], $copyFrom))
+	{
+		echo "from URLs don't match\n";
+		exit();
+	}
+	if(!areUrlsRight($urlCsvLine[1], $copyTo))
+	{
+		echo "to URLs don't match\n";
+		exit();
+	}
+	while(!feof($file))
+	{
+		$oneCsvLine = fgetcsv($file);
+		foreach($projects as $project)
+		{
+			if($oneCsvLine[1] == $project['name'])
+			{
+				$fromTo[$oneCsvLine[0]] = $project['id'];
+				continue;
+			}
+		}
+	}
+	return $fromTo;
+}
+
 function getIssueFromAsArray ($copyFrom, $issuenumber)
 {
 	$curlHandle = curl_init();
@@ -76,7 +107,14 @@ function getIssueFromAsArray ($copyFrom, $issuenumber)
 	$transferReturned = curl_exec($curlHandle);
 	curl_close($curlHandle);
 
-	return json_decode($transferReturned, true);
+	$issueFrom = json_decode($transferReturned, true);
+	return $issueFrom['issue'];
+}
+
+function changeIssueForSending($issueFrom, $fromTo)
+{
+	$issueFrom['project']['id'] = $fromTo[$issueFrom['project']['name']];
+	return $issueFrom;
 }
 
 function sendIssueToRedmine ($issueTo, $copyTo)
@@ -94,17 +132,46 @@ function sendIssueToRedmine ($issueTo, $copyTo)
 	$transferReturned = curl_exec($curlHandle);
 	
 	curl_close($curlHandle);
+	
+	return $transferReturned;
+}
+
+function findStatusFromHeader($header)
+{
+	$headerArray = explode("\n",$header);
+	$returnValue = preg_split("/HTTP\/1.1/", $headerArray[0]);
+	return $returnValue[1];
+}
+
+function areUrlsRight($newUrl, $copy)
+{
+	if($newUrl == $copy[0]['url'])
+		return true;
+	return false;
+}
+function getProjectsAsArray($copy)
+{
+	$curlHandle = curl_init();
+	curl_setopt($curlHandle, CURLOPT_URL, $copy[0]["url"]."/projects.json");
+	curl_setopt($curlHandle, CURLOPT_HTTPHEADER, getApiKeyHeader($copy[0]["apiKey"]));
+	curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($curlHandle, CURLOPT_HEADER, false);
+	
+	$transferReturned = curl_exec($curlHandle);
+	curl_close($curlHandle);
+
+	$projects = json_decode($transferReturned, true);
+	return $projects['projects'];
 }
 
 function createNewIssue($issueTo)
 {
 	$newIssue = array();
-	$newIssue['project_id'] = $issueTo['issue']['project']['id'];
-	$newIssue['tracker_id'] = $issueTo['issue']['tracker']['id'];
-	$newIssue['priority_id'] = $issueTo['issue']['priority']['id'];
-	$newIssue['subject'] = $issueTo['issue']['subject'];
-	$newIssue['description'] = $issueTo['issue']['description'];
-	$newIssue['fixed_version'] = $issueTo['issue']['fixed_version']['id'];
+	$newIssue['project_id'] = $issueTo['project']['id'];
+	$newIssue['tracker_id'] = $issueTo['tracker']['id'];
+	$newIssue['priority_id'] = $issueTo['priority']['id'];
+	$newIssue['subject'] = $issueTo['subject'];
+	$newIssue['description'] = $issueTo['description'];
 	
 	return json_encode(array("issue" => $newIssue));
 }
@@ -123,4 +190,5 @@ function getRedmineJsonPostHeaders ($jsonData, $apiKey)
 	
 	return $headers;
 }
+
 ?>
