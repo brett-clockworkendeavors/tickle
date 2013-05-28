@@ -40,7 +40,8 @@ $destinationIssue = changeIssueForSending($sourceIssue, $destinationProjectIds, 
 $header = sendIssueToRedmine($destinationIssue, $sourceAndDestinationUrls['destination'],$apiKeysForUrls[$sourceAndDestinationUrls['destination']]);
 $copyStatus = findStatusFromHeader($header);
 $copyStatus = trim($copyStatus);
-echo $copyStatus."\n";
+if($copyStatus != "201 Created")
+	echo "Issue not copied: ". $copyStatus."\n";
 
 function usage()
 {
@@ -54,11 +55,16 @@ function usage()
 function getConfig($fileName)
 {
 	$config = array();
-	$file = fopen($fileName, "r") or exit("Unable to open file.");
+	$file = fopen($fileName, "r") or exit("Unable to open file ".$fileName);
+	$line = 0;
 	while(!feof($file))
 	{
+		$line++;
 		$configCsvLine = fgetcsv($file);
-		$config[$configCsvLine[0]] = $configCsvLine[1];
+		if(count($configCsvLine) == 2)
+			$config[$configCsvLine[0]] = $configCsvLine[1];
+		else
+			echo $fileName . ":". $line. " - Wrong number of entries\n";
 	}
 	
 	return $config;
@@ -66,29 +72,57 @@ function getConfig($fileName)
 
 function getSourceAndDestinationUrls($fileName)
 {
-	$file = fopen($fileName, "r") or exit("Unable to open file.");
+	$file = fopen($fileName, "r") or exit("Unable to open file ".$fileName);
 	$urlCsvLine = fgetcsv($file);
+	
+	if(count($urlCsvLine) != 2)
+	{
+		echo $fileName . ":1- Wrong number of entries\n";
+		exit();
+	}
+		
 	$urls['source'] = $urlCsvLine[0];
 	$urls['destination'] = $urlCsvLine[1];
 	fclose($file);
 	return $urls;
 }
 
-function getDestinationProjectIds($fileName,$apiKeysForUrls)
+function getDestinationProjectIds($fileName, $apiKeysForUrls)
 {
 	$file = fopen($fileName, "r") or exit("Unable to open file.");
+	
 	$urls = fgetcsv($file);
+	if(count($urls) != 2)
+		echo $fileName . ":1- Wrong number of entries\n";
+	
+	if(!array_key_exists($urls[1], $apiKeysForUrls))
+	{
+		echo $urls[1]." - No Api Key\n";
+		exit();
+	}
 	$destinationProjects = getProjectsFromRedmineAsArray($urls[1], $apiKeysForUrls[$urls[1]]);
+	
+	$lineNumber = 1;
 	while(!feof($file))
 	{
+		$lineNumber++;
 		$oneCsvLine = fgetcsv($file);
-		foreach($destinationProjects as $project)
+		if(count($oneCsvLine) != 2)
+			echo $fileName . ":".$lineNumber." - Wrong number of entries\n";
+		else
 		{
-			if($oneCsvLine[1] == $project['name'])
+			$found = false;
+			foreach($destinationProjects as $project)
 			{
-				$fromTo[$oneCsvLine[0]] = $project['id'];
-				continue;
+				if($oneCsvLine[1] == $project['name'])
+				{
+					$fromTo[$oneCsvLine[0]] = $project['id'];
+					$found = true;
+					continue;
+				}
 			}
+			if(!$found)
+				echo $fileName .":".$lineNumber. "\n". $urls[1]. " : ". $oneCsvLine[1]. " - no such project\n";
 		}
 	}
 	fclose($file);
@@ -101,17 +135,31 @@ function getIssue ($url, $apiKey, $issueNumber)
 	curl_setopt($curlHandle, CURLOPT_URL, $url."/issues/".$issueNumber.".json");
 	curl_setopt($curlHandle, CURLOPT_HTTPHEADER, getApiKeyHeader($apiKey));
 	curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($curlHandle, CURLOPT_HEADER, false);
+	curl_setopt($curlHandle, CURLOPT_HEADER, true);
 	
 	$transferReturned = curl_exec($curlHandle);
+	list($header,$jsonData) = explode("\r\n\r\n", $transferReturned, 2);
 	curl_close($curlHandle);
 
-	$issue = json_decode($transferReturned, true);
+	$status = findStatusFromHeader($header);
+	$status = trim($status);
+	if($status != "200 OK")
+	{
+		echo "getIssue: ".$status;
+		exit();
+	}
+	
+	$issue = json_decode($jsonData, true);
 	return $issue['issue'];
 }
 
 function changeIssueForSending($sourceIssue, $destinationProjectIds, $sourceUrl)
 {
+	if(!array_key_exists(($sourceIssue['project']['name']), $destinationProjectIds))
+	{
+		echo "Source Project ". $sourceIssue['project']['name']. " has no destination\n";
+		exit();
+	}
 	$sourceIssue['project']['id'] = $destinationProjectIds[$sourceIssue['project']['name']];
 	$sourceIssue['description'] = $sourceIssue['description']."\nExternal Issue Link: ".$sourceUrl."/issues/".$sourceIssue['id'];
 	return $sourceIssue;
@@ -149,12 +197,22 @@ function getProjectsFromRedmineAsArray($url, $apiKey)
 	curl_setopt($curlHandle, CURLOPT_URL, $url."/projects.json");
 	curl_setopt($curlHandle, CURLOPT_HTTPHEADER, getApiKeyHeader($apiKey));
 	curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($curlHandle, CURLOPT_HEADER, false);
+	curl_setopt($curlHandle, CURLOPT_HEADER, true);
 	
 	$transferReturned = curl_exec($curlHandle);
+	list($header,$jsonData) = explode("\r\n\r\n", $transferReturned, 2);
+	
 	curl_close($curlHandle);
 
-	$projects = json_decode($transferReturned, true);
+	$status = findStatusFromHeader($header);
+	$status = trim($status);
+	if($status != "200 OK")
+	{
+		echo "getProjectsFromRedmineAsArray: ".$status. "\n";
+		exit();
+	}
+	
+	$projects = json_decode($jsonData, true);
 	return $projects['projects'];
 }
 
