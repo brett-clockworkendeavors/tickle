@@ -36,7 +36,7 @@ $copyFrom = getConfig("config/copyFromConfig.csv");
 $copyTo = getConfig("config/copyToConfig.csv");
 $fromTo = getFromTo("config/configFromTo.csv",$copyFrom, $copyTo);
 $issueFrom = getIssueFromAsArray($copyFrom, $issuenumber);
-$issueTo = changeIssueForSending($issueFrom, $fromTo);
+$issueTo = changeIssueForSending($issueFrom, $fromTo, $copyFrom);
 $header = sendIssueToRedmine($issueTo, $copyTo);
 $copyStatus = findStatusFromHeader($header);
 $copyStatus = trim($copyStatus);
@@ -111,9 +111,10 @@ function getIssueFromAsArray ($copyFrom, $issuenumber)
 	return $issueFrom['issue'];
 }
 
-function changeIssueForSending($issueFrom, $fromTo)
+function changeIssueForSending($issueFrom, $fromTo, $copyFrom)
 {
 	$issueFrom['project']['id'] = $fromTo[$issueFrom['project']['name']];
+	$issueFrom['description'] = $issueFrom['description']."\nExternal Issue Link: ".$copyFrom[0]['url']."/issues/".$issueFrom['id'];
 	return $issueFrom;
 }
 
