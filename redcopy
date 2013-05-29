@@ -36,6 +36,7 @@ $apiKeysForUrls = getConfig("config/urlAndApiKey.csv");
 $sourceAndDestinationUrls = getSourceAndDestinationUrls("config/sourceAndDestination.csv");
 $destinationProjectIds = getDestinationProjectIds("config/sourceAndDestination.csv", $apiKeysForUrls);
 $sourceIssue = getIssue($sourceAndDestinationUrls['source'], $apiKeysForUrls[$sourceAndDestinationUrls['source']], $issueNumber);
+var_dump($sourceIssue);
 $destinationIssue = changeIssueForSending($sourceIssue, $destinationProjectIds, $sourceAndDestinationUrls['source']);
 $header = sendIssueToRedmine($destinationIssue, $sourceAndDestinationUrls['destination'],$apiKeysForUrls[$sourceAndDestinationUrls['destination']]);
 $copyStatus = findStatusFromHeader($header);
@@ -145,7 +146,7 @@ function getIssue ($url, $apiKey, $issueNumber)
 	$status = trim($status);
 	if($status != "200 OK")
 	{
-		echo "getIssue: ".$status;
+		echo "getIssue: ".$status. "\n";
 		exit();
 	}
 	
@@ -161,7 +162,7 @@ function changeIssueForSending($sourceIssue, $destinationProjectIds, $sourceUrl)
 		exit();
 	}
 	$sourceIssue['project']['id'] = $destinationProjectIds[$sourceIssue['project']['name']];
-	$sourceIssue['description'] = $sourceIssue['description']."\nExternal Issue Link: ".$sourceUrl."/issues/".$sourceIssue['id'];
+	$sourceIssue['description'] = $sourceIssue['description']."\n\nExternal Issue Link: ".$sourceUrl."/issues/".$sourceIssue['id'];
 	return $sourceIssue;
 }
 
@@ -230,7 +231,7 @@ function createSendIssue($issueFromRedmine)
 	$sendIssue['priority_id'] = $issueFromRedmine['priority']['id'];
 	$sendIssue['subject'] = $issueFromRedmine['subject'];
 	$sendIssue['description'] = $issueFromRedmine['description'];
-	
+	$sendIssue['estimated_hours'] = $issueFromRedmine['estimated_hours'];
 	return json_encode(array("issue" => $sendIssue));
 }
 
