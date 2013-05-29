@@ -226,14 +226,32 @@ function getApiKeyHeader ($apiKey)
 function createSendIssue($issueFromRedmine)
 {
 	$sendIssue = array();
+	
 	$sendIssue['project_id'] = $issueFromRedmine['project']['id'];
-	$sendIssue['tracker_id'] = $issueFromRedmine['tracker']['id'];
-	$sendIssue['priority_id'] = $issueFromRedmine['priority']['id'];
-	$sendIssue['subject'] = $issueFromRedmine['subject'];
-	$sendIssue['description'] = $issueFromRedmine['description'];
-	$sendIssue['estimated_hours'] = $issueFromRedmine['estimated_hours'];
-	$sendIssue['start_date'] = $issueFromRedmine['start_date'];
-	$sendIssue['due_date'] = $issueFromRedmine['due_date'];
+	
+	if(array_key_exists('tracker',$issueFromRedmine))
+		$sendIssue['tracker_id'] = $issueFromRedmine['tracker']['id'];
+		
+	if(array_key_exists('priority',$issueFromRedmine))
+		$sendIssue['priority_id'] = $issueFromRedmine['priority']['id'];
+	
+	if(array_key_exists('subject',$issueFromRedmine))
+		$sendIssue['subject'] = $issueFromRedmine['subject'];
+	
+	if(array_key_exists('description',$issueFromRedmine))
+		$sendIssue['description'] = $issueFromRedmine['description'];
+	
+	if(array_key_exists('estimated_hours',$issueFromRedmine))
+		$sendIssue['estimated_hours'] = $issueFromRedmine['estimated_hours'];
+	
+	if(array_key_exists('start_date',$issueFromRedmine))
+		$sendIssue['start_date'] = $issueFromRedmine['start_date'];
+	
+	if(array_key_exists('due_date',$issueFromRedmine))
+		$sendIssue['due_date'] = $issueFromRedmine['due_date'];
+	
+	if(array_key_exists('custom_fields',$issueFromRedmine))
+		$sendIssue['custom_fields'] = $issueFromRedmine['custom_fields'];
 	
 	return json_encode(array("issue" => $sendIssue));
 }
