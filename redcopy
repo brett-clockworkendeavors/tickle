@@ -232,6 +232,9 @@ function createSendIssue($issueFromRedmine)
 	$sendIssue['subject'] = $issueFromRedmine['subject'];
 	$sendIssue['description'] = $issueFromRedmine['description'];
 	$sendIssue['estimated_hours'] = $issueFromRedmine['estimated_hours'];
+	$sendIssue['start_date'] = $issueFromRedmine['start_date'];
+	$sendIssue['due_date'] = $issueFromRedmine['due_date'];
+	
 	return json_encode(array("issue" => $sendIssue));
 }
 
