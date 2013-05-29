@@ -36,7 +36,6 @@ $apiKeysForUrls = getConfig("config/urlAndApiKey.csv");
 $sourceAndDestinationUrls = getSourceAndDestinationUrls("config/sourceAndDestination.csv");
 $destinationProjectIds = getDestinationProjectIds("config/sourceAndDestination.csv", $apiKeysForUrls);
 $sourceIssue = getIssue($sourceAndDestinationUrls['source'], $apiKeysForUrls[$sourceAndDestinationUrls['source']], $issueNumber);
-var_dump($sourceIssue);
 $destinationIssue = changeIssueForSending($sourceIssue, $destinationProjectIds, $sourceAndDestinationUrls['source']);
 $header = sendIssueToRedmine($destinationIssue, $sourceAndDestinationUrls['destination'],$apiKeysForUrls[$sourceAndDestinationUrls['destination']]);
 $copyStatus = findStatusFromHeader($header);
