@@ -129,7 +129,7 @@ function getDestinationProjectIds($fileName, $apiKeysForUrls)
 	return $fromTo;
 }
 
-function getIssue ($url, $apiKey, $issueNumber)
+function getIssue($url, $apiKey, $issueNumber)
 {
 	$curlHandle = curl_init();
 	curl_setopt($curlHandle, CURLOPT_URL, $url."/issues/".$issueNumber.".json");
