@@ -255,7 +255,7 @@ function createSendIssue($issueFromRedmine)
 	return json_encode(array("issue" => $sendIssue));
 }
 
-function getRedmineJsonPostHeaders ($jsonData, $apiKey)
+function getRedmineJsonPostHeaders($jsonData, $apiKey)
 {
 	$headers[] = 'Content-Type: application/json';
 	$headers[] = 'Content-Length: '. strlen($jsonData);
