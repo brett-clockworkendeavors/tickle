@@ -72,7 +72,7 @@ function getConfig($fileName)
 
 function getSourceAndDestinationUrls($fileName)
 {
-	$file = fopen($fileName, "r") or exit("Unable to open file ".$fileName);
+	$file = fopen($fileName, "r") or exit("Unable to open file ".$fileName."\n");
 	$urlCsvLine = fgetcsv($file);
 	
 	if(count($urlCsvLine) != 2)
