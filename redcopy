@@ -55,7 +55,7 @@ function usage()
 function getConfig($fileName)
 {
 	$config = array();
-	$file = fopen($fileName, "r") or exit("Unable to open file ".$fileName);
+	$file = fopen($fileName, "r") or exit("Unable to open file ".$fileName."\n");
 	$line = 0;
 	while(!feof($file))
 	{
@@ -165,7 +165,7 @@ function changeIssueForSending($sourceIssue, $destinationProjectIds, $sourceUrl)
 	return $sourceIssue;
 }
 
-function sendIssueToRedmine ($destinationIssue, $url, $apiKey)
+function sendIssueToRedmine($destinationIssue, $url, $apiKey)
 {
 	$sendIssue = createSendIssue($destinationIssue);
 	$curlHandle = curl_init($url."/issues.json");
