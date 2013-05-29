@@ -89,7 +89,7 @@ function getSourceAndDestinationUrls($fileName)
 
 function getDestinationProjectIds($fileName, $apiKeysForUrls)
 {
-	$file = fopen($fileName, "r") or exit("Unable to open file.");
+	$file = fopen($fileName, "r") or exit("Unable to open file.". "\n");
 	
 	$urls = fgetcsv($file);
 	if(count($urls) != 2)
